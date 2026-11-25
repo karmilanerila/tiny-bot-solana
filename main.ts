@@ -2,7 +2,9 @@
 //
 // Idea (robust, not dev-tuned): ride a trend only once two hourly bars in a
 // row agree it is up, sit in USDC the rest of the time, and cap every loss
-// with a hard stop plus a trailing stop. No price or date from the dev window
+// with a hard stop plus a trailing stop. Position size is capped at 15%
+// of equity per symbol, so a single volatile name cannot dominate the
+// book. No price or date from the dev window
 // is baked in anywhere, so the same rule works in an up window, a down
 // window, or a choppy one: in a down window it mostly holds cash, in an up
 // window it holds the risers.
@@ -23,7 +25,9 @@ const SLOW_LEN = 21;
 // one stray bar never opens or closes a position.
 const CONFIRM_BARS = 2;
 // Target weight of equity per symbol (cap is 25% from hello.caps).
-const TARGET_WEIGHT_BPS = 2000;
+// Kept at 15% rather than 20%: the v1 dev run lost most in two volatile
+// memecoins, so no single symbol should be able to take a fifth of equity.
+const TARGET_WEIGHT_BPS = 1500;
 // Hard stop: exit when the close falls this far below the entry close.
 const STOP_PCT = 0.96;
 // Trailing stop: exit when the close falls this far below the best close
@@ -97,7 +101,7 @@ await runBars({
         continue;
       }
       if (t.bullStreak < CONFIRM_BARS) continue;
-      // Target 20% of equity in this symbol, never over the weight cap and
+      // Target 15% of equity in this symbol, never over the weight cap and
       // never over the cash still free for this batch's orders.
       const target = (state.equity * BigInt(TARGET_WEIGHT_BPS)) / 10000n;
       const room = state.weightRoom(symbol);
